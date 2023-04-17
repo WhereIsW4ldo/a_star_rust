@@ -1,4 +1,6 @@
-use std::{vec, process::exit};
+use std::{vec};
+
+use axum::Json;
 
 fn main() {
 
@@ -35,64 +37,9 @@ fn main() {
     open.push((0, 0));
     grid[0][0].state = State::Open;
 
-    // repeat the following:
-
-    loop {
-        // look for lowest F-cost square in open list
-        let mut lowest: (usize, usize) = open[0];
-        for (x, y) in &open {
-            if grid[lowest.0][lowest.1].f > grid[*x][*y].f {
-                lowest = (*x, *y);
-            }
-        }
-        let current_square: (usize, usize) = lowest;
-
-        if current_square.0 == end.0 as usize && current_square.1 == end.1 as usize {
-            backtrack(linked_list, start, end);
-            exit(0);
-        }
-
-        // switch current_square to closed list
-        closed.push(current_square);
-        grid[current_square.0][current_square.1].state = State::Closed;
-        let index = open
-            .iter()
-            .position(|x| x.0 == current_square.0 && x.1 == current_square.1)
-            .unwrap();
-        open.remove(index);
-
-        // for each of the 4 adjacent to this current square
-        let adj = get_adjacents(current_square, grid.len(), grid[0].len());
-        for adjacent in &adj {
-            //If it is not walkable or if it is on the closed list, ignore it. Otherwise do the following.
-            if closed.contains(adjacent) || grid[adjacent.0][adjacent.1].tile == Tile::Wall {
-                continue;
-            }
-            //If it isn’t on the open list, add it to the open list. Make the current square the parent of this square. Record the F, G, and H costs of the square.
-            if !open.contains(adjacent) {
-                grid[adjacent.0][adjacent.1].state = State::Open;
-                open.push(*adjacent);
-                let last_g = grid[current_square.0][current_square.1].g;
-                grid[adjacent.0][adjacent.1].set_g(last_g + 1);
-                linked_list.push(Node {
-                    prev: current_square,
-                    field: *adjacent,
-                });
-            }
-
-            //If it is on the open list already, check to see if this path to that square is better, using G cost as the measure. A lower G cost means that this is a better path. If so, change the parent of the square to the current square, and recalculate the G and F scores of the square. If you are keeping your open list sorted by F score, you may need to resort the list to account for the change.
-            if open.contains(adjacent) {
-                if grid[adjacent.0][adjacent.1].g > grid[current_square.0][current_square.1].g + 1 {
-                    linked_list.push(Node {
-                        prev: current_square,
-                        field: *adjacent,
-                    });
-                }
-            }
-
-            calculate_f(&mut grid);
-        }
-    }
+    let data = calculate(open, &mut closed, &mut grid, &mut linked_list, start, end);
+    
+    println!("{:#?}", Json::<Data>(data));
 }
 
 fn init_grid((size_x, size_y): (usize, usize)) -> Vec<Vec<Field>> {
@@ -136,19 +83,94 @@ fn get_adjacents((y, x): (usize, usize), len_x: usize, len_y: usize) -> Vec<(usi
     adjacents
 }
 
-fn backtrack(linked_list: Vec<Node>, start: (usize, usize), end: (usize, usize)) {
+#[derive(Debug, Clone)]
+struct Data{
+    start: (usize, usize),
+    end: (usize, usize),
+    open: Vec<(usize, usize)>,
+    closed: Vec<(usize, usize)>,
+    path: Vec<(usize, usize)>,
+}
+
+fn calculate(mut open: Vec<(usize, usize)>, closed: &mut Vec<(usize, usize)>, grid: &mut Vec<Vec<Field>>, linked_list: &mut Vec<Node>, start: (usize, usize), end: (usize, usize)) -> Data{
+    loop {
+        // look for lowest F-cost square in open list
+        let mut lowest: (usize, usize) = open[0];
+        for (x, y) in &open {
+            if grid[lowest.0][lowest.1].f > grid[*x][*y].f {
+                lowest = (*x, *y);
+            }
+        }
+        let current_square: (usize, usize) = lowest;
+
+        if current_square.0 == end.0 as usize && current_square.1 == end.1 as usize {
+            return Data {
+                start,
+                end,
+                open,
+                closed: closed.clone(),
+                path: backtrack(linked_list, start, end),
+            };
+        }
+
+        // switch current_square to closed list
+        closed.push(current_square);
+        grid[current_square.0][current_square.1].state = State::Closed;
+        let index = open
+            .iter()
+            .position(|x| x.0 == current_square.0 && x.1 == current_square.1)
+            .unwrap();
+        open.remove(index);
+
+        // for each of the 4 adjacent to this current square
+        let adj = get_adjacents(current_square, grid.len(), grid[0].len());
+        for adjacent in &adj {
+            //If it is not walkable or if it is on the closed list, ignore it. Otherwise do the following.
+            if closed.contains(adjacent) || grid[adjacent.0][adjacent.1].tile == Tile::Wall {
+                continue;
+            }
+            //If it isn’t on the open list, add it to the open list. Make the current square the parent of this square. Record the F, G, and H costs of the square.
+            if !open.contains(adjacent) {
+                grid[adjacent.0][adjacent.1].state = State::Open;
+                open.push(*adjacent);
+                let last_g = grid[current_square.0][current_square.1].g;
+                grid[adjacent.0][adjacent.1].set_g(last_g + 1);
+                linked_list.push(Node {
+                    prev: current_square,
+                    field: *adjacent,
+                });
+            }
+
+            //If it is on the open list already, check to see if this path to that square is better, using G cost as the measure. A lower G cost means that this is a better path. If so, change the parent of the square to the current square, and recalculate the G and F scores of the square. If you are keeping your open list sorted by F score, you may need to resort the list to account for the change.
+            if open.contains(adjacent) {
+                if grid[adjacent.0][adjacent.1].g > grid[current_square.0][current_square.1].g + 1 {
+                    linked_list.push(Node {
+                        prev: current_square,
+                        field: *adjacent,
+                    });
+                }
+            }
+
+            calculate_f(grid);
+        }
+    }
+}
+
+fn backtrack(linked_list: &Vec<Node>, start: (usize, usize), end: (usize, usize)) -> Vec<(usize, usize)>{
     let index_end = linked_list.iter().position(|node| node.field == end).unwrap();
     let mut index_prev: usize;
     let mut prev = &linked_list[index_end];
+    let mut path: Vec<(usize, usize)> = vec![];
 
     loop {
-        println!("{:?}", prev.field);
         if prev.field == start {
-            return;
+            break;
         }
         index_prev = linked_list.iter().position(|node| node.field == prev.prev).unwrap();
         prev = &linked_list[index_prev];
+        path.push(prev.field);
     }
+    path
 }
 
 #[derive(Debug, PartialEq, Clone)]
