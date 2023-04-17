@@ -81,13 +81,19 @@ fn get_adjacents((y, x): (usize, usize), len_x: usize, len_y: usize) -> Vec<(usi
 }
 
 #[derive(Debug, Clone)]
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Data{
     start: (usize, usize),
     end: (usize, usize),
     open: Vec<(usize, usize)>,
     closed: Vec<(usize, usize)>,
     path: Vec<(usize, usize)>,
+}
+
+impl std::fmt::Display for Data {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "start: {:?}, \nend: {:?}, \nopen: {:?}, \nclosed: {:?}, \npath: {:?}", self.start, self.end, self.open, self.closed, self.path)
+    }
 }
 
 fn calculate(mut open: Vec<(usize, usize)>, closed: &mut Vec<(usize, usize)>, grid: &mut Vec<Vec<Field>>, linked_list: &mut Vec<Node>, start: (usize, usize), end: (usize, usize)) -> Data{
