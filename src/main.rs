@@ -1,6 +1,6 @@
 use std::{vec};
 
-use axum::{Router, routing::get, Json, response::{IntoResponse, Html}};
+use axum::{Router, routing::get, Json, response::{IntoResponse, Html, Response}};
 use serde_json::{Value, json};
 
 pub mod a_star;
@@ -15,7 +15,8 @@ async fn main() {
 
     let app = Router::new()
                     .route("/", get(home))
-                    .route("/execute", get(calculate));
+                    .route("/execute", get(calculate))
+                    .route("/index.js", get(indexjs_get));
 
     axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
         .serve(app.into_make_service())
@@ -28,6 +29,15 @@ async fn home() -> impl IntoResponse {
     let index = tokio::fs::read_to_string("src/index.html").await.unwrap();
 
     Html(index)
+}
+
+async fn indexjs_get() -> impl IntoResponse {
+    let index = tokio::fs::read_to_string("src/index.js").await.unwrap();
+
+    Response::builder()
+                .header("content-type", "application/javascript;charset=utf-8")
+                .body(index)
+                .unwrap();
 }
 
 async fn calculate() -> Json<a_star::Data>{
