@@ -1,7 +1,12 @@
-use std::{thread::current, vec, process::exit, collections::linked_list};
+use std::{vec, process::exit};
 
 fn main() {
-    let mut grid: Vec<Vec<Field>> = init_grid(4, 4);
+
+    let grid_size: (usize, usize) = (10, 10);
+    let start: (usize, usize) = (0, 0);
+    let end: (usize, usize) = (9, 9);
+
+    let mut grid: Vec<Vec<Field>> = init_grid(grid_size);
     let mut linked_list: Vec<Node> = vec![];
     let mut open: Vec<(usize, usize)> = vec![];
     let mut closed: Vec<(usize, usize)> = vec![];
@@ -10,17 +15,17 @@ fn main() {
     grid[0][1].tile = Tile::Wall;
     grid[0][2].tile = Tile::Wall;
     grid[1][2].tile = Tile::Wall;
+    grid[2][2].tile = Tile::Wall;
+    grid[3][2].tile = Tile::Wall;
 
     // set start Field
-    let start: (usize, usize) = (0, 0);
-    grid[0][0].set_start();
+    grid[start.0][start.1].set_start();
     linked_list.push(Node {
         prev: start,
         field: start,
     });
 
     // set end Field
-    let end: (usize, usize) = (0, 3);
     grid[end.0 as usize][end.1 as usize].set_end();
 
     // calculate all h costs
@@ -32,7 +37,7 @@ fn main() {
 
     // repeat the following:
 
-    for _ in 0..10 {
+    loop {
         // look for lowest F-cost square in open list
         let mut lowest: (usize, usize) = open[0];
         for (x, y) in &open {
@@ -67,7 +72,8 @@ fn main() {
             if !open.contains(adjacent) {
                 grid[adjacent.0][adjacent.1].state = State::Open;
                 open.push(*adjacent);
-                grid[adjacent.0][adjacent.1].g = grid[current_square.0][current_square.1].g + 1;
+                let last_g = grid[current_square.0][current_square.1].g;
+                grid[adjacent.0][adjacent.1].set_g(last_g + 1);
                 linked_list.push(Node {
                     prev: current_square,
                     field: *adjacent,
@@ -89,8 +95,8 @@ fn main() {
     }
 }
 
-fn init_grid(size_x: i32, size_y: i32) -> Vec<Vec<Field>> {
-    vec![vec![Field::new(Tile::Ground); size_x as usize]; size_y as usize]
+fn init_grid((size_x, size_y): (usize, usize)) -> Vec<Vec<Field>> {
+    vec![vec![Field::new(Tile::Ground); size_x]; size_y]
 }
 
 fn set_all_h(grid: &mut Vec<Vec<Field>>, (x, y): (usize, usize)) {
@@ -136,7 +142,7 @@ fn backtrack(linked_list: Vec<Node>, start: (usize, usize), end: (usize, usize))
     let mut prev = &linked_list[index_end];
 
     loop {
-        println!("{:?}", prev);
+        println!("{:?}", prev.field);
         if prev.field == start {
             return;
         }
