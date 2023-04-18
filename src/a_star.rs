@@ -1,8 +1,6 @@
 use std::{vec};
 
-use axum::{
-    Json,
-};
+
 use serde::{Deserialize, Serialize};
 
 pub fn execute(grid_size: (usize, usize), start: (usize, usize), end: (usize, usize), walls: Vec<(usize, usize)>) -> Data {
@@ -101,6 +99,15 @@ fn calculate(mut open: Vec<(usize, usize)>, closed: &mut Vec<(usize, usize)>, gr
     loop {
         calculate_f(grid);
             // look for lowest F-cost square in open list
+        if open.is_empty() {
+            return Data {
+                start,
+                end,
+                open,
+                closed: closed.clone(),
+                path: vec![],
+            };
+        }
         let lowest = open.iter().min_by(|a, b| {
             grid[a.0][a.1].f.cmp(&grid[b.0][b.1].f)
         }).unwrap();
@@ -262,10 +269,6 @@ impl Field {
         self.tile = Tile::End;
     }
 
-    pub fn reset(&mut self) {
-        self.tile = Tile::Ground;
-    }
-
     pub fn set_g(&mut self, g: i32) {
         self.g = g;
     }
@@ -323,8 +326,6 @@ mod tests {
         let mut f1 = Field::new(Tile::Ground);
         f1.set_end();
         assert_eq!(Tile::End, f1.tile);
-        f1.reset();
-        assert_eq!(Tile::Ground, f1.tile);
     }
 
     #[test]
