@@ -15,6 +15,7 @@ pub fn execute(grid_size: (usize, usize), start: (usize, usize), end: (usize, us
     // set some wall fields
     for wall in walls {
         grid[wall.0][wall.1].tile = Tile::Wall;
+        // println!("\n\n\n\nwall: {:?}\n\n\n\n", grid[wall.0][wall.1]);
     }
 
     // set start Field
@@ -31,8 +32,8 @@ pub fn execute(grid_size: (usize, usize), start: (usize, usize), end: (usize, us
     set_all_h(&mut grid, end);
 
     // add start node to open list
-    open.push((0, 0));
-    grid[0][0].state = State::Open;
+    open.push(start);
+    grid[start.0][start.1].state = State::Open;
 
     let data = calculate(open, &mut closed, &mut grid, &mut linked_list, start, end);
     
@@ -98,14 +99,14 @@ impl std::fmt::Display for Data {
 
 fn calculate(mut open: Vec<(usize, usize)>, closed: &mut Vec<(usize, usize)>, grid: &mut Vec<Vec<Field>>, linked_list: &mut Vec<Node>, start: (usize, usize), end: (usize, usize)) -> Data{
     loop {
-        // look for lowest F-cost square in open list
-        let mut lowest: (usize, usize) = open[0];
-        for (x, y) in &open {
-            if grid[lowest.0][lowest.1].f > grid[*x][*y].f {
-                lowest = (*x, *y);
-            }
-        }
-        let current_square: (usize, usize) = lowest;
+        calculate_f(grid);
+            // look for lowest F-cost square in open list
+        let lowest = open.iter().min_by(|a, b| {
+            grid[a.0][a.1].f.cmp(&grid[b.0][b.1].f)
+        }).unwrap();
+        // println!("open: {:?}", open);
+        // println!("lowest: ({}, {}) {:?}", lowest.0, lowest.1, grid[lowest.0][lowest.1]);
+        let current_square: (usize, usize) = *lowest;
 
         if current_square.0 == end.0 as usize && current_square.1 == end.1 as usize {
             return Data {
@@ -128,11 +129,14 @@ fn calculate(mut open: Vec<(usize, usize)>, closed: &mut Vec<(usize, usize)>, gr
 
         // for each of the 4 adjacent to this current square
         let adj = get_adjacents(current_square, grid.len(), grid[0].len());
+        // println!("adj: {:?}", adj);
         for adjacent in &adj {
             //If it is not walkable or if it is on the closed list, ignore it. Otherwise do the following.
+            // println!("grid[adjacent.0][adjacent.1].tile: {:?}", grid[adjacent.0][adjacent.1].tile);
             if closed.contains(adjacent) || grid[adjacent.0][adjacent.1].tile == Tile::Wall {
                 continue;
             }
+
             //If it isn’t on the open list, add it to the open list. Make the current square the parent of this square. Record the F, G, and H costs of the square.
             if !open.contains(adjacent) {
                 grid[adjacent.0][adjacent.1].state = State::Open;
@@ -144,9 +148,8 @@ fn calculate(mut open: Vec<(usize, usize)>, closed: &mut Vec<(usize, usize)>, gr
                     field: *adjacent,
                 });
             }
-
             //If it is on the open list already, check to see if this path to that square is better, using G cost as the measure. A lower G cost means that this is a better path. If so, change the parent of the square to the current square, and recalculate the G and F scores of the square. If you are keeping your open list sorted by F score, you may need to resort the list to account for the change.
-            if open.contains(adjacent) {
+            else {
                 if grid[adjacent.0][adjacent.1].g > grid[current_square.0][current_square.1].g + 1 {
                     linked_list.push(Node {
                         prev: current_square,
@@ -161,18 +164,30 @@ fn calculate(mut open: Vec<(usize, usize)>, closed: &mut Vec<(usize, usize)>, gr
 }
 
 fn backtrack(linked_list: &Vec<Node>, start: (usize, usize), end: (usize, usize)) -> Vec<(usize, usize)>{
-    let index_end = linked_list.iter().position(|node| node.field == end).unwrap();
-    let mut index_prev: usize;
+    // println!("linked_list: {:?}", linked_list);
+    // println!("start: {:?}", start);
+    // println!("end: {:?}", end);
+
+    if let None = linked_list.iter().position(|node| node.field.0 == end.0 && node.field.1 == end.1) {
+        return vec![(linked_list[0].field.0, linked_list[0].field.1)]
+    }
+    let index_end = linked_list.iter().position(|node| node.field.0 == end.0 && node.field.1 == end.1).unwrap();
+
     let mut prev = &linked_list[index_end];
     let mut path: Vec<(usize, usize)> = vec![];
 
     loop {
-        if prev.field == start {
+        // println!("{:?}", prev.field);
+        if prev.field.0 == start.0 && prev.field.1 == start.1 {
             break;
         }
-        index_prev = linked_list.iter().position(|node| node.field == prev.prev).unwrap();
-        prev = &linked_list[index_prev];
-        path.push(prev.field);
+        match linked_list.iter().position(|node| node.field == prev.prev) {
+            Some(index) => {
+                prev = &linked_list[index];
+                path.push(prev.field);
+            },
+            None => break,
+        }
     }
     path
 }

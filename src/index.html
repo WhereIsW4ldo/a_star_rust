@@ -2,17 +2,255 @@
 <html lang="en">
 <head>
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            setInterval(async () => {
-                let response = await fetch("/execute");
+
+        document.addEventListener("DOMContentLoaded", function () {
+            makeGrid();
+        });
+
+        async function execute() {
+
+            if (document.getElementsByClassName("cell start").length == 0) {
+                alert("Please select a start cell");
+                return;
+            }
+            else if (document.getElementsByClassName("cell end").length == 0) {
+                alert("Please select an end cell");
+                return;
+            }
+
+            let start, end;
+            let walls = [];
+
+            for (let i = 0; i < document.getElementById("size").value; i++) {
+                for (let j = 0; j < document.getElementById("size").value; j++) {
+                    let cell = document.getElementById(i + "," + j);
+                    if (cell.getAttribute("class") == "cell start") {
+                        start = [i, j];
+                    } else if (cell.getAttribute("class") == "cell end") {
+                        end = [i, j];
+                    } else if (cell.getAttribute("class") == "cell wall") {
+                        walls.push([i, j]);
+                    }
+                }
+            }
+
+            console.log(start, end, walls);
+
+            let path = "/execute";
+
+            path += "/size=" + document.getElementById("size").value;
+            path += "/start=" + start[0] + "," + start[1];
+            path += "/end=" + end[0] + "," + end[1];
+            path += "/walls=";
+            for (let i = 0; i < walls.length; i++) {
+                path += walls[i][0] + "," + walls[i][1];
+                if (i != walls.length - 1) {
+                    path += ";";
+                }
+            }
+
+            let response = await fetch(path);
                 if (response.status !== 200) {
                     console.log("Error: " + response.status);
                     return;
                 }
 
-                let json = await response.json();
-                document.body.textContent = JSON.stringify(json, null, 2);
-            }, 1000);
-        });
+                let data = await response.json();
+                console.log("Data: " + JSON.stringify(data));
+
+                console.log("Path: " + data.path);
+                for (let i = 0; i < data.path.length-1; i += 1) {
+                    let cell = document.getElementById(data.path[i][0] + "," + data.path[i][1]);
+                    cell.setAttribute("class", "cell path");
+                }
+        }
+
+        function makeGrid() {
+            let myTable = document.getElementById("grid");
+
+            if (myTable) {
+                document.getElementById("grid").remove();
+            }
+
+            let size = document.getElementById("size").value;
+            let table = document.createElement("table");
+            table.setAttribute("id", "grid");
+            for (let i = 0; i < size; i++) {
+                let row = document.createElement("tr");
+                for (let j = 0; j < size; j++) {
+                    let cell = document.createElement("td");
+                    cell.setAttribute("id", i + "," + j);
+                    cell.setAttribute("class", "cell start_sel");
+                    let a = document.createElement("a");
+                    a.setAttribute("href", "#");
+                    cell.setAttribute("id", i + "," + j);
+                    a.setAttribute("onclick", "cell_click(this.parentNode)");
+                    cell.appendChild(a);
+                    row.appendChild(cell);
+                }
+                table.appendChild(row);
+            }
+            document.body.appendChild(table);
+        }
+
+        function select_start() {
+            let cells = document.getElementsByClassName("cell");
+            for (let i = 0; i < cells.length; i++) {
+                if (["cell start", "cell end", "cell wall"].includes(cells[i].getAttribute("class"))) {
+                    continue;
+                }
+                cells[i].setAttribute("class", "cell start_sel");
+            }
+        }
+
+        function select_end() {
+            let cells = document.getElementsByClassName("cell");
+            for (let i = 0; i < cells.length; i++) {
+                if (["cell start", "cell end", "cell wall"].includes(cells[i].getAttribute("class"))) {
+                    continue;
+                }
+                cells[i].setAttribute("class", "cell end_sel");
+            }
+        }
+
+        function select_wall() {
+            let cells = document.getElementsByClassName("cell");
+            for (let i = 0; i < cells.length; i++) {
+                if (["cell start", "cell end", "cell wall"].includes(cells[i].getAttribute("class"))) {
+                    continue;
+                }
+                cells[i].setAttribute("class", "cell wall_sel");
+            }
+        }
+
+        function select_wall() {
+            let cells = document.getElementsByClassName("cell");
+            for (let i = 0; i < cells.length; i++) {
+                if (["cell start", "cell end", "cell wall"].includes(cells[i].getAttribute("class"))) {
+                    continue;
+                }
+                cells[i].setAttribute("class", "cell clear");
+            }
+        }
+
+        function cell_click(parentNode) {
+            let type = document.querySelector('input[name="selector_action"]:checked').value;
+            if (type == "CLEAR") {
+                parentNode.setAttribute("class", "cell");
+                return;
+            }
+            if (type == "START"){
+                var start = document.getElementsByClassName("cell start");
+                if (start.length > 0) {
+                    start[0].setAttribute("class", "cell");
+                }
+                parentNode.setAttribute("class", "cell start");
+            }
+            else if (type == "END")
+            {
+                var start = document.getElementsByClassName("cell end");
+                if (start.length > 0) {
+                    start[0].setAttribute("class", "cell");
+                }
+                parentNode.setAttribute("class", "cell end");
+            }
+            else if (type == "WALL")
+            {
+                parentNode.setAttribute("class", "cell wall");
+            }
+        }
+
+        function clear_grid() {
+            let cells = document.getElementsByClassName("cell");
+            for (let i = 0; i < cells.length; i++) {
+                cells[i].setAttribute("class", "cell");
+            }
+        }
     </script>
+    <style>
+        .cell {
+            width: 30px;
+            height: 30px;
+            border: 1px solid black;
+        }
+
+        .cell.start_sel :hover {
+            background-color: #3eea18;
+        }
+
+        .cell.end_sel :hover {
+            background-color: #e92b2b;
+        }
+
+        .cell.wall_sel :hover {
+            background-color: #5e5b5b;
+        }
+
+        .cell.clear :hover {
+            background-color: white;
+        }
+
+        .cell.start {
+            background-color: #3eea18;
+        }
+
+        .cell.end {
+            background-color: #e92b2b;
+        }
+
+        .cell.wall {
+            background-color: #5e5b5b;
+        }
+
+        .cell.path {
+            background-color: #2f17e3;
+        }
+
+        .cell a {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        table {
+            margin: 0 auto;
+        }
+    </style>
 </head>
+<body>
+    <h1>A* Pathfinding!</h1>
+    <table>
+        <tr>
+            <th>Size grid:</th>
+            <th>
+                <input type="number" id="size" name="size" min="1" max="100" value="10" onchange="makeGrid()"></input>
+            </th>
+        </tr>
+    </table>
+    <table>
+        <tr>
+            <th>
+                <label>start</label>
+                <input type="radio" id="start_selector" name="selector_action" value="START" checked onchange="select_start()">
+            </th>
+            <th>
+                <label>end</label>
+                <input type="radio" id="end_selector" name="selector_action" value="END" onchange="select_end()">
+            </th>   
+            <th>
+                <label>wall</label>
+                <input type="radio" id="wall_selector" name="selector_action" value="WALL" onchange="select_wall()">
+            </th>
+            <th>
+                <label>clear</label>
+                <input type="radio" id="clear_selector" name="selector_action" value="CLEAR" onchange="select_wall()">
+            </th>
+            <th>
+                <input type="button" value="Execute" onclick="execute()">
+            </th>
+            <th>
+                <input type="button" value="Clear" onclick="clear_grid()">
+            </th>
+        </tr>
+    </table>
+</body>
