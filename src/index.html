@@ -66,11 +66,29 @@
                 let data = await response.json();
                 console.log("Data: " + JSON.stringify(data));
 
+                console.log("Open: " + data.open);
+                for (let i = 0; i < data.open.length-1; i += 1) {
+                    set(data.open[i][0] + "," + data.open[i][1], "open");
+                }
+
+                console.log("Closed: " + data.closed);
+                for (let i = 0; i < data.closed.length-1; i += 1) {
+                    set(data.closed[i][0] + "," + data.closed[i][1], "closed");
+                }
+
                 console.log("Path: " + data.path);
                 for (let i = 0; i < data.path.length-1; i += 1) {
-                    let cell = document.getElementById(data.path[i][0] + "," + data.path[i][1]);
-                    cell.setAttribute("class", "cell path");
+                    set(data.path[i][0] + "," + data.path[i][1], "path");
+                    // let cell = document.getElementById(data.path[i][0] + "," + data.path[i][1]);
+                    // cell.setAttribute("class", "cell path");
                 }
+
+                set(data.start[0] + "," + data.start[1], "start");
+        }
+
+        function set(identifier, value) {
+            let cell = document.getElementById(identifier);
+            cell.setAttribute("class", "cell " + value);
         }
 
         function makeGrid() {
@@ -225,6 +243,14 @@
 
         .cell.path {
             background-color: #2f17e3;
+        }
+
+        .cell.open {
+            background-color: #5c84c1;
+        }
+
+        .cell.closed {
+            background-color: #e28e8e;
         }
 
         .cell a {
