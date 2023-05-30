@@ -111,8 +111,6 @@ fn calculate(mut open: Vec<(usize, usize)>, closed: &mut Vec<(usize, usize)>, gr
         let lowest = open.iter().min_by(|a, b| {
             grid[a.0][a.1].f.cmp(&grid[b.0][b.1].f)
         }).unwrap();
-        // println!("open: {:?}", open);
-        // println!("lowest: ({}, {}) {:?}", lowest.0, lowest.1, grid[lowest.0][lowest.1]);
         let current_square: (usize, usize) = *lowest;
 
         if current_square.0 == end.0 as usize && current_square.1 == end.1 as usize {
@@ -128,6 +126,7 @@ fn calculate(mut open: Vec<(usize, usize)>, closed: &mut Vec<(usize, usize)>, gr
         // switch current_square to closed list
         closed.push(current_square);
         grid[current_square.0][current_square.1].state = State::Closed;
+        
         let index = open
             .iter()
             .position(|x| x.0 == current_square.0 && x.1 == current_square.1)
@@ -136,10 +135,9 @@ fn calculate(mut open: Vec<(usize, usize)>, closed: &mut Vec<(usize, usize)>, gr
 
         // for each of the 4 adjacent to this current square
         let adj = get_adjacents(current_square, grid.len(), grid[0].len());
-        // println!("adj: {:?}", adj);
         for adjacent in &adj {
+
             //If it is not walkable or if it is on the closed list, ignore it. Otherwise do the following.
-            // println!("grid[adjacent.0][adjacent.1].tile: {:?}", grid[adjacent.0][adjacent.1].tile);
             if closed.contains(adjacent) || grid[adjacent.0][adjacent.1].tile == Tile::Wall {
                 continue;
             }
