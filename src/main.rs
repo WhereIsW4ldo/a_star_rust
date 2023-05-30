@@ -36,10 +36,6 @@ async fn indexjs_get() -> impl IntoResponse {
 
 #[axum_macros::debug_handler]
 async fn calculate(Path((size, start, end, wall)): Path<(String, String, String, String)>) -> Json<a_star::Data>{
-    // println!("size: {:?}", size);
-    // println!("start: {:?}", start);
-    // println!("end: {:?}", end);
-    // println!("walls: {:?}", wall);
 
     let size = size.split("=").collect::<Vec<&str>>()[1];
     let size = size.parse::<usize>().unwrap();
@@ -56,12 +52,14 @@ async fn calculate(Path((size, start, end, wall)): Path<(String, String, String,
     if wall != "walls=" {
         let walls = wall.split("=").collect::<Vec<&str>>()[1];
         let walls = walls.split(";").collect::<Vec<&str>>();
-        // println!("walls: {:?}", walls);
+
         let walls = walls.iter().map(|wall| {
             let wall = wall.split(",").collect::<Vec<&str>>();
             (wall[0].parse::<usize>().unwrap(), wall[1].parse::<usize>().unwrap())
         }).collect::<Vec<(usize, usize)>>();
+
         let data = a_star::execute((size, size), start, end, walls);
+        
         return Json(data);
     }
 
