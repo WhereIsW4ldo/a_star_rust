@@ -3,6 +3,14 @@
 <head>
     <script>
 
+        let mouseDown = 0;
+        window.onmousedown = () => {
+            mouseDown = 1;
+        };
+        window.onmouseup = () => {
+            mouseDown = 0;
+        };
+
         document.addEventListener("DOMContentLoaded", function () {
             makeGrid();
         });
@@ -79,6 +87,13 @@
                 let row = document.createElement("tr");
                 for (let j = 0; j < size; j++) {
                     let cell = document.createElement("td");
+
+                    cell.setAttribute("draggable", "false");
+                    cell.setAttribute("ondragstart", "return false;");
+                    cell.setAttribute("ondrop", "return false;");
+
+                    cell.setAttribute("onmouseover", "cell_hover(this)");
+
                     cell.setAttribute("id", i + "," + j);
                     cell.setAttribute("class", "cell start_sel");
                     let a = document.createElement("a");
@@ -91,6 +106,12 @@
                 table.appendChild(row);
             }
             document.body.appendChild(table);
+        }
+
+        function cell_hover(cell) {
+            if (mouseDown == 1) {
+                cell_click(cell);
+            }
         }
 
         function select_start() {
@@ -123,7 +144,7 @@
             }
         }
 
-        function select_wall() {
+        function select_clear() {
             let cells = document.getElementsByClassName("cell");
             for (let i = 0; i < cells.length; i++) {
                 if (["cell start", "cell end", "cell wall"].includes(cells[i].getAttribute("class"))) {
@@ -247,7 +268,7 @@
             </th>
             <th>
                 <label>clear</label>
-                <input type="radio" id="clear_selector" name="selector_action" value="CLEAR" onchange="select_wall()">
+                <input type="radio" id="clear_selector" name="selector_action" value="CLEAR" onchange="select_clear()">
             </th>
             <th>
                 <input type="button" value="Execute" onclick="execute()">
